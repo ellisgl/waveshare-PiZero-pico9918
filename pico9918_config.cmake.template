@@ -20,7 +20,8 @@
 # Board
 # -----------------------------------------------------------------------------
 
-# Target board. Valid values: pico9918pro (RP2350, default), pico9918 (RP2040).
+# Target board. Valid values: pico9918pro (RP2350, default), pico9918 (RP2040),
+# waveshare_rp2040_pizero (RP2040, DVI out - see docs/waveshare-rp2040-pizero.md).
 # Board headers live in src/boards/.
 # NOTE: a combined build (PICO9918_BUILD_COMBINED) builds BOTH boards and sets
 #       the board per sub-target, so this value is ignored in that mode.
@@ -43,6 +44,15 @@
 
 # Enable the GPU frame counter.
 #set(PICO9918_GPU_FRAME_COUNTER OFF)
+
+# DVI output on a directly-wired HDMI connector (RP2040 only). Defaults ON for
+# waveshare_rp2040_pizero and OFF otherwise. Forces SCART off and the clock to
+# 252 MHz; adds a "-dvi" suffix to the artifact name.
+#set(PICO9918_DISPLAY_DVI OFF)
+
+# DVI: only use TMDS symbols a spec encoder would emit (black=16, white=239).
+# Try this if a display shows sparkles or won't lock.
+#set(PICO9918_DVI_STRICT_TMDS OFF)
 
 # Build a combined PICO9918 (RP2040) + PICO9918 PRO (RP2350) UF2. Normally driven
 # by the builder/configure script (-DPICO9918_BUILD_COMBINED=ON); you can force it
@@ -114,6 +124,10 @@
 #set(PICO9918_GPIO_MODE1  29)   # mode select 1
 #set(PICO9918_GPIO_INT    22)   # /INT output
 #set(PICO9918_GPIO_RESET  23)   # soft reset input (v0.4+)
+#set(PICO9918_GPIO_CSR    26)   # /CSR (substituted into src/tms9918.pio.in)
+#set(PICO9918_GPIO_CSW    27)   # /CSW (substituted into src/tms9918.pio.in)
+# Constraints: CD7..CD0 consecutive; MODE must be 8..15 above CD7.
+# waveshare_rp2040_pizero has its own defaults (see docs/waveshare-rp2040-pizero.md).
 
 # Clock outputs (src/gpio.h)
 #set(PICO9918_GPIO_GROMCL      25)   # GROM clock (v0.4+)

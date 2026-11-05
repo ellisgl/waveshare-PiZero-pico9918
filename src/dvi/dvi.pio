@@ -1,0 +1,24 @@
+/*
+ * Project: pico9918 - dvi
+ *
+ * This code is licensed under the MIT license
+ */
+
+; -----------------------------------------------------------------------------
+; dvi_serialiser - shift one TMDS lane out as a differential pair
+;
+; one bit per system clock (252 MHz -> 25.2 MHz pixel clock). each instruction
+; drives the pair via side-set and jumps to the address given by the next data
+; bit, so the bit shifted out on one cycle appears on the pins the next cycle:
+;
+;   address 0: P=0 N=1 (TMDS "0")
+;   address 1: P=1 N=0 (TMDS "1")
+;
+; side-set base is the + pin, + 1 is the - pin. autopull at 20 bits (two 10-bit
+; symbols per word, LSB first). must be loaded at offset 0.
+
+.program dvi_serialiser
+.side_set 2
+.origin 0
+    out pc, 1    side 0b10
+    out pc, 1    side 0b01

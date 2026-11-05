@@ -33,7 +33,7 @@
 ;
 
 .program tmsRead
-.define public CSR_PIN 26
+.define public CSR_PIN @PICO9918_GPIO_CSR@  ; set by CMake (PICO9918_GPIO_CSR)
 
   pull block
   mov x, osr        ; ensure we have a valid fifo value in x
@@ -82,7 +82,7 @@ endPart:
 ;              | | |e| |    |        | | | | |    |        |
 
 .program tmsWrite
-.define public CSW_PIN 27
+.define public CSW_PIN @PICO9918_GPIO_CSW@  ; set by CMake (PICO9918_GPIO_CSW)
 
   wait 0 gpio CSW_PIN [7]   ; wait for CSW to go active (low)
   in pins, 16               ; grab the initial (mode) state

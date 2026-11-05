@@ -282,12 +282,23 @@ static const ClockSettings scartClockPresets[] = {
 };
 #endif
 
+#if PICO9918_DISPLAY_DVI
+// DVI: the TMDS bit clock IS the system clock, so it must stay at 252 MHz
+// (25.2 MHz pixel clock). Every preset maps to it so a saved config can't
+// push the link out of spec.
+static const ClockSettings vgaClockPresets[] = {
+  CLOCK_PRESET(1512000000, 6, 1, VREG_VOLTAGE_1_20),    // 252 MHz
+  CLOCK_PRESET(1512000000, 6, 1, VREG_VOLTAGE_1_20),    // 252 MHz
+  CLOCK_PRESET(1512000000, 6, 1, VREG_VOLTAGE_1_20)     // 252 MHz
+};
+#else
 // VGA: clocks for 25.175 MHz pixel clock
 static const ClockSettings vgaClockPresets[] = {
   CLOCK_PRESET(1512000000, 6, 1, VREG_VOLTAGE_1_15),    // 252 MHz
   CLOCK_PRESET(1512000000, 5, 1, VREG_VOLTAGE_1_20),    // 302.4 MHz
   CLOCK_PRESET(1056000000, 3, 1, VREG_VOLTAGE_1_30)     // 352 MHz
 };
+#endif
 
 static const ClockSettings *clockPresets = vgaClockPresets;
 

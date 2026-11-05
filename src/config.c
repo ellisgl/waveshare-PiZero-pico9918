@@ -40,6 +40,10 @@ static Pico9918HardwareVersion detectHardwareVersion()
 
 #if PICO_RP2350
   version = HWVer_2_x;
+#elif PICO9918_SKIP_HWVER_DETECT
+  // board header says this can't be v0.3 hardware (and the v0.3 clock pins may
+  // be in use for something else), so don't probe GPIO_RESET
+  version = HWVer_1_x;
 #elif PICO_RP2040
   // check if RESET pin is being driven externally (on v0.4+, it is, on v0.3 it isn't since it's CPUCL)
   gpio_pull_down(GPIO_RESET);

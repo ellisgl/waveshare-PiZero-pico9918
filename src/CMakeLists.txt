@@ -31,9 +31,11 @@ endif()
 visrealm_generate_image_source_ram(${PROGRAM} bmp_font res/font.png )
 
 # generate header file from pio
+# tms9918.pio is generated from a template so /CSR and /CSW can be any GPIO
+configure_file(${CMAKE_CURRENT_LIST_DIR}/tms9918.pio.in ${CMAKE_CURRENT_BINARY_DIR}/tms9918.pio @ONLY)
 pico_generate_pio_header(${PROGRAM} ${CMAKE_CURRENT_LIST_DIR}/clocks.pio)
 pico_generate_pio_header(${PROGRAM} ${CMAKE_CURRENT_LIST_DIR}/palconv.pio)
-pico_generate_pio_header(${PROGRAM} ${CMAKE_CURRENT_LIST_DIR}/tms9918.pio)
+pico_generate_pio_header(${PROGRAM} ${CMAKE_CURRENT_BINARY_DIR}/tms9918.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(${PROGRAM} 0)
@@ -55,14 +57,20 @@ target_compile_definitions(${PROGRAM} PRIVATE
 )
 
 
-target_link_libraries(${PROGRAM} PUBLIC        
+if (PICO9918_DISPLAY_DVI)
+    set(PICO9918_DISPLAY_LIB pico9918-dvi)
+else()
+    set(PICO9918_DISPLAY_LIB pico9918-vga)
+endif()
+
+target_link_libraries(${PROGRAM} PUBLIC
         pico_stdlib
         pico_multicore
         hardware_dma
         hardware_pio
         hardware_adc
         hardware_flash
-        pico9918-vga
+        ${PICO9918_DISPLAY_LIB}
         pico9918-gpu
         vrEmuTms9918)
 
@@ -88,4 +96,7 @@ add_custom_target(firmware DEPENDS ${CMAKE_BINARY_DIR}/dist/${PROGRAM}.uf2)
 
 add_subdirectory(pio-utils)
 add_subdirectory(vga)
+if (PICO9918_DISPLAY_DVI)
+    add_subdirectory(dvi)
+endif()
 add_subdirectory(gpu)

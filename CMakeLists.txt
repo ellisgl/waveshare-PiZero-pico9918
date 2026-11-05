@@ -42,6 +42,18 @@ endif()
 
 option(PICO9918_BUILD_COMBINED "Build combined PICO9918 + PICO9918 PRO UF2" OFF)
 
+# Off-the-shelf RP2040 boards with an on-board HDMI connector wired straight to
+# GPIOs. These output DVI (via PIO TMDS) instead of VGA/SCART.
+set(PICO9918_DVI_BOARDS waveshare_rp2040_pizero)
+if(PICO_BOARD IN_LIST PICO9918_DVI_BOARDS)
+    set(_pico9918_dvi_default ON)
+else()
+    set(_pico9918_dvi_default OFF)
+endif()
+if(NOT DEFINED PICO9918_DISPLAY_DVI)
+    set(PICO9918_DISPLAY_DVI ${_pico9918_dvi_default})
+endif()
+
 # Check if building configurator only (skip Pico SDK setup)
 if(NOT CONFIGURATOR_ONLY AND NOT PICO9918_BUILD_COMBINED)
     # Pull in Raspberry Pi Pico SDK (must be before project)
@@ -94,6 +106,16 @@ if(PICO9918_INT_ACTIVE_HIGH)
     add_definitions(-DPICO9918_INT_ACTIVE_HIGH)
 endif()
 
+# DVI output (RP2040 only). Replaces the VGA/SCART driver; SCART is not available.
+option(PICO9918_DVI_STRICT_TMDS "DVI: only use spec-encoder TMDS symbols (black=16, white=239)" OFF)
+if(PICO9918_DISPLAY_DVI)
+    set(PICO9918_ENABLE_SCART OFF)
+    add_definitions(-DPICO9918_DISPLAY_DVI=1)
+    if(PICO9918_DVI_STRICT_TMDS)
+        add_definitions(-DPICO9918_DVI_STRICT_TMDS=1)
+    endif()
+endif()
+
 add_definitions(-DPICO_BUILD=1)
 add_definitions(-DVR_EMU_TMS9918_SINGLE_INSTANCE=1)
 add_definitions(-DVR_EMU_TMS9918_MODE=1)
@@ -137,19 +159,43 @@ add_definitions(-DPICO_XOSC_STARTUP_DELAY_MULTIPLIER=${PICO9918_XOSC_STARTUP_DEL
 # header default (src/gpio.h, src/vga/vga.h) via #ifndef, so setting one here
 # (e.g. in pico9918_config.cmake) overrides the hardware default. Each entry is
 # "PICO9918_<NAME> <default>"; the resulting define is -DPICO9918_<NAME>=<value>.
-set(PICO9918_PIN_DEFAULTS
-    "GPIO_CD7 14"          # CPU data bus base (CD7..CD0 = base..base+7)
-    "GPIO_MODE 28"         # mode select
-    "GPIO_MODE1 29"        # mode select 1
-    "GPIO_INT 22"          # /INT output
-    "GPIO_RESET 23"        # soft reset input (v0.4+)
-    "GPIO_GROMCL 25"       # GROM clock (v0.4+)
-    "GPIO_CPUCL 24"        # CPU clock (v0.4+)
-    "GPIO_GROMCL_V03 29"   # GROM clock (v0.3 hardware)
-    "GPIO_CPUCL_V03 23"    # CPU clock (v0.3 hardware)
-    "VGA_SYNC_PINS_START 0" # first VGA sync pin (h, v = base, base+1)
-    "VGA_RGB_PINS_START 2"  # first VGA rgb pin (12 pins from base)
-)
+# GPIO_CSR / GPIO_CSW are substituted into src/tms9918.pio.in at configure time.
+if(PICO_BOARD STREQUAL "waveshare_rp2040_pizero")
+    # Waveshare RP2040-PiZero: GPIO22-29 drive the on-board mini HDMI, GPIO2/3/16
+    # go to its DDC/CEC lines, so the bus lives on GPIO4-21. See
+    # docs/waveshare-rp2040-pizero.md for the 40-pin header mapping.
+    set(PICO9918_PIN_DEFAULTS
+        "GPIO_CD7 8"           # CPU data bus base (CD7..CD0 = GPIO8..GPIO15)
+        "GPIO_MODE 17"         # mode select
+        "GPIO_MODE1 7"         # mode select 1
+        "GPIO_INT 20"          # /INT output
+        "GPIO_RESET 21"        # soft reset input
+        "GPIO_GROMCL 4"        # GROM clock
+        "GPIO_CPUCL 5"         # CPU clock
+        "GPIO_GROMCL_V03 4"    # (no v0.3 variant of this board)
+        "GPIO_CPUCL_V03 5"
+        "GPIO_CSR 18"          # /CSR (read strobe)
+        "GPIO_CSW 19"          # /CSW (write strobe)
+        "VGA_SYNC_PINS_START 0" # unused (DVI)
+        "VGA_RGB_PINS_START 2"  # unused (DVI)
+    )
+else()
+    set(PICO9918_PIN_DEFAULTS
+        "GPIO_CD7 14"          # CPU data bus base (CD7..CD0 = base..base+7)
+        "GPIO_MODE 28"         # mode select
+        "GPIO_MODE1 29"        # mode select 1
+        "GPIO_INT 22"          # /INT output
+        "GPIO_RESET 23"        # soft reset input (v0.4+)
+        "GPIO_GROMCL 25"       # GROM clock (v0.4+)
+        "GPIO_CPUCL 24"        # CPU clock (v0.4+)
+        "GPIO_GROMCL_V03 29"   # GROM clock (v0.3 hardware)
+        "GPIO_CPUCL_V03 23"    # CPU clock (v0.3 hardware)
+        "GPIO_CSR 26"          # /CSR (read strobe)
+        "GPIO_CSW 27"          # /CSW (write strobe)
+        "VGA_SYNC_PINS_START 0" # first VGA sync pin (h, v = base, base+1)
+        "VGA_RGB_PINS_START 2"  # first VGA rgb pin (12 pins from base)
+    )
+endif()
 foreach(_entry ${PICO9918_PIN_DEFAULTS})
     separate_arguments(_parts UNIX_COMMAND "${_entry}")
     list(GET _parts 0 _name)
@@ -160,10 +206,40 @@ foreach(_entry ${PICO9918_PIN_DEFAULTS})
     add_definitions(-DPICO9918_${_name}=${PICO9918_${_name}})
 endforeach()
 
+# Sanity-check the bus pins against the PIO programs' constraints.
+if(NOT CONFIGURATOR_ONLY AND NOT PICO9918_BUILD_COMBINED)
+    math(EXPR _mode_offset "${PICO9918_GPIO_MODE} - ${PICO9918_GPIO_CD7}")
+    if(_mode_offset LESS 8 OR _mode_offset GREATER 15)
+        message(FATAL_ERROR "PICO9918_GPIO_MODE (${PICO9918_GPIO_MODE}) must be 8..15 above "
+                            "PICO9918_GPIO_CD7 (${PICO9918_GPIO_CD7}): the write PIO samples 16 pins from CD7")
+    endif()
+    math(EXPR _cd0 "${PICO9918_GPIO_CD7} + 7")
+    set(_bus_pins ${PICO9918_GPIO_MODE} ${PICO9918_GPIO_CSR} ${PICO9918_GPIO_CSW}
+                  ${PICO9918_GPIO_INT} ${PICO9918_GPIO_RESET})
+    if(NOT PICO9918_NO_CLOCKS)
+        list(APPEND _bus_pins ${PICO9918_GPIO_GROMCL} ${PICO9918_GPIO_CPUCL})
+    endif()
+    foreach(_p RANGE ${PICO9918_GPIO_CD7} ${_cd0})
+        list(APPEND _bus_pins ${_p})
+    endforeach()
+    set(_seen "")
+    foreach(_p ${_bus_pins})
+        if(_p IN_LIST _seen)
+            message(FATAL_ERROR "GPIO${_p} is assigned to more than one PICO9918 bus signal")
+        endif()
+        list(APPEND _seen ${_p})
+        if(PICO9918_DISPLAY_DVI AND _p GREATER_EQUAL 22)
+            message(FATAL_ERROR "GPIO${_p} is a bus signal but GPIO22-29 carry DVI on this board")
+        endif()
+    endforeach()
+endif()
 
-# Output-mode suffix: "" for VGA+SCART, "-vgaonly" otherwise.
+
+# Output-mode suffix: "" for VGA+SCART, "-vgaonly" or "-dvi" otherwise.
 if(NOT CONFIGURATOR_ONLY)
-  if(PICO9918_ENABLE_SCART)
+  if(PICO9918_DISPLAY_DVI)
+    set(PICO9918_OUTPUT_STR "-dvi")
+  elseif(PICO9918_ENABLE_SCART)
     set(PICO9918_OUTPUT_STR "")
   else()
     set(PICO9918_OUTPUT_STR "-vgaonly")

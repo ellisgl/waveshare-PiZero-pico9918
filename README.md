@@ -1,5 +1,12 @@
 # PICO9918
 
+> [!NOTE]
+> **This fork** adds support for running PICO9918 on an off-the-shelf
+> [Waveshare RP2040-PiZero](https://www.waveshare.com/wiki/RP2040-PiZero), with DVI/HDMI
+> output from the board's own mini HDMI port. See
+> [docs/waveshare-rp2040-pizero.md](docs/waveshare-rp2040-pizero.md) for the pinout,
+> carrier board requirements and build steps. The upstream boards build exactly as before.
+
 A drop-in replacement for a classic TMS9918A VDP powered by the Raspberry Pi Pico RP2040 (and RP2350) microcontroller.
 
 <p align="left"><a href="img/pico9918_v1_2_top_sm.jpg"><img src="img/pico9918_v1_2_top_sm.jpg" alt="PICO9918 v1.2 Top" width="400px"></a> <a href="img/pico9918_v1_2_bottom_sm.jpg"><img src="img/pico9918_v1_2_bottom_sm.jpg" alt="PICO9918 v1.2 Top" width="406px"></a></p>

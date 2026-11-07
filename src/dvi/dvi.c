@@ -349,19 +349,23 @@ static void initSerialisers()
 
 static void initClockLane()
 {
-  // pixel clock = sys / 10, differential via PWM A and inverted B on one slice
+  // pixel clock = sys / 10, differential via PWM A and B on one slice.
+  // Same as PicoDVI's dvi_serialiser_init (used by Waveshare's own demo for
+  // this board): A (CLK+) inverted, B not, and the pair-inversion override
+  // applied to the clock pads too. This sets the clock's phase against the
+  // data lanes, so keep it identical to the known-working configuration.
   const uint slice = pwm_gpio_to_slice_num(PICO9918_DVI_CLK_PIN);
 
   pwm_config cfg = pwm_get_default_config();
-  pwm_config_set_output_polarity(&cfg, PICO9918_DVI_INVERT_DIFFPAIRS, !PICO9918_DVI_INVERT_DIFFPAIRS);
+  pwm_config_set_output_polarity(&cfg, true, false);
   pwm_config_set_wrap(&cfg, 9);
   pwm_init(slice, &cfg, false);
   pwm_set_both_levels(slice, 5, 5);
 
   gpio_set_function(PICO9918_DVI_CLK_PIN, GPIO_FUNC_PWM);
   gpio_set_function(PICO9918_DVI_CLK_PIN + 1, GPIO_FUNC_PWM);
-  configurePad(PICO9918_DVI_CLK_PIN, false);
-  configurePad(PICO9918_DVI_CLK_PIN + 1, false);
+  configurePad(PICO9918_DVI_CLK_PIN, PICO9918_DVI_INVERT_DIFFPAIRS);
+  configurePad(PICO9918_DVI_CLK_PIN + 1, PICO9918_DVI_INVERT_DIFFPAIRS);
 }
 
 static void initDma()

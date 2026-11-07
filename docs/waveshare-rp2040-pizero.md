@@ -27,7 +27,7 @@ Selecting this board turns on `PICO9918_DISPLAY_DVI` and turns off SCART. Option
 
 | Option | Default | Meaning |
 |---|---|---|
-| `PICO9918_DVI_STRICT_TMDS` | `OFF` | Only send TMDS symbols a spec encoder would produce. Use it if a display shows sparkles or won't lock. Black becomes level 16 and white 239. |
+| `PICO9918_DVI_STRICT_TMDS` | `ON` | Only send TMDS symbols a spec encoder would produce (black is level 16, white 239). With `OFF`, black and white use the symbols 0x255 and 0x155, which have 8–9 bit transitions. Receivers can take those for control tokens and lose sync, and a tested monitor turned its backlight off. |
 | `PICO9918_NO_CLOCKS` | `OFF` | Don't drive GROMCLK/CPUCLK. |
 | `PICO9918_GPIO_*` | see below | Move bus signals. CMake checks the constraints. |
 
@@ -138,6 +138,6 @@ placement, the blanking contents, that every active line carries the right
 rendered row, that no buffer changes while it is being sent, and the render
 request and interrupt message sequence.
 
-On real hardware, check these first: that the monitor locks, the colours (try
-`PICO9918_DVI_STRICT_TMDS=ON` if they look wrong), and the diagnostics overlay's
-frame rate while running F18A GPU software.
+On real hardware, check these first: that the monitor locks (keep
+`PICO9918_DVI_STRICT_TMDS=ON`, the default), the colours, and the diagnostics
+overlay's frame rate while running F18A GPU software.

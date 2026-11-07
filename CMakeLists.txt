@@ -107,7 +107,10 @@ if(PICO9918_INT_ACTIVE_HIGH)
 endif()
 
 # DVI output (RP2040 only). Replaces the VGA/SCART driver; SCART is not available.
-option(PICO9918_DVI_STRICT_TMDS "DVI: only use spec-encoder TMDS symbols (black=16, white=239)" OFF)
+# ON by default: the full-range table sends black/white as 0x255/0x155 (8-9 bit
+# transitions), which receivers can mistake for control tokens and misalign on.
+# A real monitor went dark on it.
+option(PICO9918_DVI_STRICT_TMDS "DVI: only use spec-encoder TMDS symbols (black=16, white=239)" ON)
 if(PICO9918_DISPLAY_DVI)
     set(PICO9918_ENABLE_SCART OFF)
     add_definitions(-DPICO9918_DISPLAY_DVI=1)

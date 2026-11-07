@@ -105,7 +105,7 @@ specific to this board:
 
 | Option | Default | Effect |
 |---|---|---|
-| `PICO9918_DVI_STRICT_TMDS` | `OFF` | Use only TMDS symbols a standard encoder would produce. Try this if a display shows sparkles or won't lock. Black becomes slightly grey (16/255) and white 239/255. |
+| `PICO9918_DVI_STRICT_TMDS` | `ON` | Use only TMDS symbols a standard encoder would produce, so black is slightly grey (16/255) and white 239/255. `OFF` gives full-range black and white, but sends them as high-transition symbols that monitors can mistake for sync tokens: a tested monitor went dark. |
 | `PICO9918_NO_CLOCKS` | `OFF` | Don't drive the GROMCLK/CPUCLK outputs. |
 | `PICO9918_GPIO_*` | see [Pinout](#pinout) | Move bus signals. The build checks for clashes and invalid layouts. |
 

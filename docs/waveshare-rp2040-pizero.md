@@ -95,8 +95,11 @@ while the host is on back-feeds the host and the PC into each other.
 
 A 3.3V host such as an FPGA or a 3.3V microcontroller can wire straight to the header
 pins in the pin mapping table, with no level shifting. Power the PiZero from its USB-C,
-share GND, and leave the 5V pins (2, 4) and the HDMI pins above unconnected. A Mojo V3
-(Spartan-6) host worked with this bus timing:
+share GND, and leave the 5V pins (2, 4) and the HDMI pins above unconnected.
+
+[pico9918-mojo-test](https://github.com/ellisgl/pico9918-mojo-test) is a working example:
+a Mojo V3 (Spartan-6) host design with a bus master, VRAM read-back test, /INT-driven frame
+loop, serial debug report and wiring table. It uses this bus timing:
 
 | | |
 |---|---|

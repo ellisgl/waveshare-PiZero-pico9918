@@ -66,9 +66,14 @@ bi_decl(bi_2pins_with_names(PICO9918_DVI_CLK_PIN, "DVI CLK+", PICO9918_DVI_CLK_P
 #define DVI_PIO         pio0     // the tms bus and clocks use pio1
 #define DVI_LANES       3
 
-/* DMA channels. channel 2 is used by main.c (dma32), 5 and 6 are reserved for PALCONV */
-static const uint dataDmaChan[DVI_LANES] = { 0, 1, 3 };
-static const uint ctrlDmaChan[DVI_LANES] = { 4, 7, 8 };
+/* DMA channels. Others in use (none of them claimed, so dma_channel_claim()
+ * can't catch a clash):
+ *   2     main.c dma32 (memset)
+ *   3, 4  vrEmuTms9918.c dma32 / dma8 (memset, used while rendering scanlines)
+ *   5, 6  main.c PALCONV (reserved)
+ * Sharing 3 or 4 breaks the DVI chain as soon as core 1 renders a scanline. */
+static const uint dataDmaChan[DVI_LANES] = { 0, 1, 7 };
+static const uint ctrlDmaChan[DVI_LANES] = { 8, 9, 10 };
 
 /* messages to the render loop on core 1 (same values as the vga driver) */
 #define FRONT_PORCH_MSG     0x20000000

@@ -9,10 +9,13 @@ does the same job on a custom PCB. All of the TMS9918A and F18A emulation comes 
 project and its [vrEmuTms9918](https://github.com/visrealm/vrEmuTms9918) library. This fork
 adds a board definition, a DVI video driver and a pin layout that suit the PiZero.
 
-> [!WARNING]
-> **Not yet tested on real hardware.** The firmware builds. The video encoder and the full
-> scanline pipeline have been verified by running the real firmware in an emulator (see
-> [Tests](#tests)), but nothing has been run on a PiZero plugged into a retro computer yet.
+> [!NOTE]
+> **Tested with an FPGA host, not yet with a retro computer.** A Mojo V3 FPGA wired straight
+> to the header (3.3V, no carrier) has acted as the host CPU. Register and VRAM writes,
+> VRAM read-back, status reads and /INT all work, and the DVI output gives a stable 60 Hz
+> picture on a real HDMI monitor. Nothing has been run on a PiZero plugged into a retro
+> computer yet. The encoder and scanline pipeline are also covered by emulator tests
+> (see [Tests](#tests)).
 
 ## Contents
 
@@ -145,7 +148,7 @@ per-machine notes.
 
 ## Limitations
 
-- **Untested on hardware** (see the warning at the top).
+- **Not yet tested with a retro computer** (see the note at the top).
 - **F18A GPU speed.** Core 0 encodes the video and also runs the F18A GPU. Encoding takes
   an estimated 35–70% of that core, depending on the picture, so GPU-heavy F18A software
   may run slower than on a PICO9918.

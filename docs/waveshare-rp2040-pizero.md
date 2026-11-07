@@ -91,6 +91,27 @@ USB-C connector. If you feed host +5V there, put a Schottky or ideal diode
 (v1.3 uses an LM66200) between host 5V and VBUS. Otherwise plugging in USB-C
 while the host is on back-feeds the host and the PC into each other.
 
+### Driving it from a 3.3V host
+
+A 3.3V host such as an FPGA or a 3.3V microcontroller can wire straight to the header
+pins in the pin mapping table, with no level shifting. Power the PiZero from its USB-C,
+share GND, and leave the 5V pins (2, 4) and the HDMI pins above unconnected. A Mojo V3
+(Spartan-6) host worked with this bus timing:
+
+| | |
+|---|---|
+| MODE/CD setup before /CSW or /CSR falls | 60 ns |
+| /CSW low | 300 ns |
+| /CSR low (sample CD at the end) | 400 ns |
+| Hold after the strobe rises | 60 ns |
+| Gap between accesses | 2 µs |
+
+Every access interrupts the RP2040, which has to update its read-ahead before the next
+read. Keep the gap at about 2 µs, which is also what a real TMS9918A needs. With
+unbuffered wiring, keep the RESET wire short and away from the data and strobe lines. The
+firmware ignores RESET pulses shorter than 2 µs, because a false reset blanks the display
+and turns off /INT.
+
 ## How the DVI output works
 
 - `src/dvi/` replaces `src/vga/` and implements the same `vga.h` API, so the
@@ -118,8 +139,10 @@ while the host is on back-feeds the host and the PC into each other.
   own row, which halves the encode budget. Busy lines may show stale content
   rather than lose sync.
 - No HDMI audio, EDID or hot-plug handling. The output is always 640x480.
-- **Untested on hardware so far.** Everything below was verified only in
-  emulation.
+- **Not yet tested with a retro computer.** An FPGA host on direct 3.3V
+  wiring has exercised the bus, /INT and the DVI output on a real monitor (see
+  [Driving it from a 3.3V host](#driving-it-from-a-33v-host)). The tests below
+  also cover the encoder and pipeline in emulation.
 
 ## Tests
 

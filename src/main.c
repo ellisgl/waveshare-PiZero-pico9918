@@ -34,6 +34,7 @@
 #include "config.h"
 #include "splash.h"
 #include "temperature.h"
+#include "boottrace.h"
 
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
@@ -114,6 +115,11 @@ static inline void setIntPin()
 #endif
 }
 
+#if PICO9918_BOOT_TRACE
+volatile uint8_t bootTraceStage = 0;
+volatile uint32_t bootTraceDviIrqs = 0;
+#endif
+
 /*
  * update the value send to the read PIO
  */
@@ -124,6 +130,13 @@ static void updateTmsReadAhead()
   if (tms9918->isUnlocked)
   {
     int vr = TMS_REGISTER(tms9918, 0x0F) & 0x0F;
+#if PICO9918_BOOT_TRACE
+    if (vr == 4)
+      readAhead |= bootTraceStage << 16;
+    else if (vr == 5)
+      readAhead |= (bootTraceDviIrqs & 0xff) << 16;
+    else
+#endif
     readAhead |= (TMS_STATUS(tms9918, vr)) << 16;
     readAhead |= vr << 24;
   }
@@ -839,6 +852,8 @@ int main(void)
   gpio_set_dir_all_bits(GPIO_INT_MASK); // /INT is an output
   gpio_set_function_masked(GPIO_CD_MASK | GPIO_CSR_MASK | GPIO_CSW_MASK | GPIO_MODE_MASK | GPIO_MODE1_MASK | GPIO_INT_MASK | GPIO_RESET_MASK, GPIO_FUNC_SIO);
 
+  BOOT_TRACE(BT_MAIN_START);
+
   // detect on core 0 before core 1 is launched (proc1 also reads it)
   (void)currentHwVersion();
 
@@ -858,9 +873,11 @@ int main(void)
 
   /* we need one of these. it's the main guy */
   vrEmuTms9918Init();
+  BOOT_TRACE(BT_EMU_INIT);
 
   /* launch core 1 which handles TMS9918<->CPU and rendering scanlines */
   multicore_launch_core1(proc1Entry);
+  BOOT_TRACE(BT_CORE1_LAUNCHED);
 
   /* we could set clock freq here from options */
   readConfig(tms9918->config);
@@ -868,6 +885,7 @@ int main(void)
   applyPendingDisplay(tms9918->config);
 
   updateDispDriver();
+  BOOT_TRACE(BT_CONFIG_READ);
 
   if (tms9918->config[CONF_CLOCK_PRESET_ID] != clockPresetIndex)
   {
@@ -878,6 +896,7 @@ int main(void)
     sleep_ms(1);
     set_sys_clock_pll(clockSettings.pll, clockSettings.pllDiv1, clockSettings.pllDiv2);
   }
+  BOOT_TRACE(BT_CLOCK_SET);
 
 #ifndef PICO9918_NO_CLOCKS
   // set up the GROMCLK and CPUCLK outputs (frequencies depend on the VDP device)
@@ -891,6 +910,7 @@ int main(void)
   initClockOrPullLow(gromClkGpio, tmsGromClkSm, clkCfg->pin37freq);
   initClockOrPullLow(cpuClkGpio, tmsCpuClkSm, clkCfg->pin38freq);
 #endif
+  BOOT_TRACE(BT_CLOCKS_OUT);
 
   dma_channel_config cfg = dma_channel_get_default_config(dma32);
   channel_config_set_read_increment(&cfg, false);
@@ -959,17 +979,22 @@ int main(void)
 
   const char *version = PICO9918_VERSION;
 
+  BOOT_TRACE(BT_VGA_INIT_CALL);
   vgaInit(params);
 
   initTemperature();
+  BOOT_TRACE(BT_TEMPERATURE);
 
   initDiagnostics();
+  BOOT_TRACE(BT_DIAGNOSTICS);
 
   /* signal proc1 that we're ready to start the display */
   multicore_fifo_push_blocking(0);
+  BOOT_TRACE(BT_CORE1_SIGNALLED);
 
   /* initialize the GPU */
   gpuInit();
+  BOOT_TRACE(BT_MAIN_LOOP);
 
   /* pass control of core0 over to the TMS9900 GPU */
   gpuLoop();

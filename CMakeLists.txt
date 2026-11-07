@@ -106,6 +106,13 @@ if(PICO9918_INT_ACTIVE_HIGH)
     add_definitions(-DPICO9918_INT_ACTIVE_HIGH)
 endif()
 
+# Bring-up aid: after the F18A unlock, status register 4 reads core 0's start-up
+# stage and SR5 the low byte of the DVI DMA interrupt count. See src/boottrace.h.
+option(PICO9918_BOOT_TRACE "Debug: start-up stage in F18A SR4, DVI irq count in SR5" OFF)
+if(PICO9918_BOOT_TRACE)
+    add_definitions(-DPICO9918_BOOT_TRACE=1)
+endif()
+
 # DVI output (RP2040 only). Replaces the VGA/SCART driver; SCART is not available.
 # ON by default: the full-range table sends black/white as 0x255/0x155 (8-9 bit
 # transitions), which receivers can mistake for control tokens and misalign on.

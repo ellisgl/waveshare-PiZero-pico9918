@@ -20,6 +20,7 @@
 #include "dvi.pio.h"
 
 #include "../display.h"
+#include "../boottrace.h"
 
 #include "pico/multicore.h"
 #include "pico/binary_info.h"
@@ -218,6 +219,7 @@ static inline void __time_critical_func(encodeVirtualLine)(uint32_t v)
 static void __isr __time_critical_func(dviDmaIrqHandler)(void)
 {
   dma_hw->ints0 = ctrlIrqMask;
+  BOOT_TRACE_DVI_IRQ();
 
   if (++currentLine >= V_TOTAL) currentLine = 0;
   const uint32_t line = currentLine;
@@ -487,8 +489,11 @@ void vgaInit(VgaInitParams params)
   vgaParams.params.numFields = 1;
 
   tmdsInitTables(PICO9918_DVI_STRICT_TMDS);
+  BOOT_TRACE(BT_DVI_TABLES);
   tmdsEncoderInterpInit();   // this core (0) runs the encoder from the dma irq
+  BOOT_TRACE(BT_DVI_INTERP);
   buildBlankingBuffers();
+  BOOT_TRACE(BT_DVI_BLANKING);
 
   // start in the vertical front porch: the first frame gets primed normally
   currentLine = V_ACTIVE;
@@ -498,8 +503,11 @@ void vgaInit(VgaInitParams params)
   writeSlot = 1;
 
   initSerialisers();
+  BOOT_TRACE(BT_DVI_SERIALISERS);
   initClockLane();
+  BOOT_TRACE(BT_DVI_CLOCK_LANE);
   initDma();
+  BOOT_TRACE(BT_DVI_DMA);
 
   // data channels start on the first blanking line, then chain through nextLinePtr
   uint32_t dataMask = 0;
@@ -509,13 +517,17 @@ void vgaInit(VgaInitParams params)
     dataMask |= 1u << dataDmaChan[lane];
   }
   dma_start_channel_mask(dataMask);
+  BOOT_TRACE(BT_DVI_DMA_STARTED);
 
   // let the FIFOs fill, then start all lanes on the same cycle, and the clock
   while (!pio_sm_is_tx_fifo_full(DVI_PIO, 0) || !pio_sm_is_tx_fifo_full(DVI_PIO, 1) || !pio_sm_is_tx_fifo_full(DVI_PIO, 2))
     tight_loop_contents();
 
+  BOOT_TRACE(BT_DVI_FIFOS_FULL);
+
   pio_enable_sm_mask_in_sync(DVI_PIO, 0x7);
   pwm_set_enabled(pwm_gpio_to_slice_num(PICO9918_DVI_CLK_PIN), true);
+  BOOT_TRACE(BT_DVI_RUNNING);
 }
 
 VgaInitParams *vgaCurrentParams()

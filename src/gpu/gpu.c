@@ -11,6 +11,7 @@
  *
  */
 
+#include "../boottrace.h"
 #include "gpu.h"
 #include "pico/stdlib.h"
 #include "hardware/structs/mpu.h"
@@ -69,6 +70,9 @@ static int didFault = 0;
  */
 void isr_hardfault ()
 {
+#if PICO9918_BOOT_TRACE
+  bootTraceStage |= BT_HARDFAULT;
+#endif
   didFault = 1;
   TMS_REGISTER(tms9918, 0x38) = 0; // Stop the GPU
   mpu_hw->ctrl = 0; // Turn off memory protection - all models

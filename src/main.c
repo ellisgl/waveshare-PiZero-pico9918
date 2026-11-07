@@ -233,6 +233,14 @@ void __not_in_flash_func(gpioIrqHandler)()
 {
   gpio_acknowledge_irq(GPIO_RESET, GPIO_IRQ_EDGE_FALL);
 
+  // Ignore glitches: a host reset holds the pin low for far longer than this,
+  // but crosstalk on unbuffered wiring (no 74LVC245 front end) can produce a
+  // few-ns falling edge. Acting on one resets R1 to 0, which blanks the
+  // display and silently disables /INT.
+  busy_wait_us_32(2);
+  if (gpio_get(GPIO_RESET))
+    return;
+
   disableTmsPioInterrupts();
 
   vrEmuTms9918Reset();  // resets palette to factory
